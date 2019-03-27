@@ -3062,7 +3062,7 @@ all =
 
 handleCallback : Callback.Callback -> Models.Model -> ( Models.Model, List Effects.Effect )
 handleCallback callback =
-    Tuple.mapSecond (always []) >> Dashboard.handleCallback callback
+    (\m -> ( m, [] )) >> Dashboard.handleCallback callback
 
 
 afterSeconds : Int -> Application.Model -> Application.Model
@@ -3167,13 +3167,11 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mou
 
 iconSelector : { size : String, image : String } -> List Selector
 iconSelector { size, image } =
-    [ style
-        [ ( "background-image", "url(/public/images/" ++ image ++ ")" )
-        , ( "background-position", "50% 50%" )
-        , ( "background-repeat", "no-repeat" )
-        , ( "width", size )
-        , ( "height", size )
-        ]
+    [ style "background-image" <| "url(/public/images/" ++ image ++ ")"
+    , style "background-position" "50% 50%"
+    , style "background-repeat" "no-repeat"
+    , style "width" size
+    , style "height" size
     ]
 
 
@@ -3205,7 +3203,7 @@ givenDataAndUser :
     -> ( Models.Model, List Effects.Effect )
 givenDataAndUser data user =
     Dashboard.handleCallback
-        (Callback.APIDataFetched <| Ok ( 0, data <| Just user ))
+        (Callback.APIDataFetched <| Ok ( Time.millisToPosix 0, data <| Just user ))
 
 
 userWithRoles : List ( String, List String ) -> Concourse.User
@@ -3225,7 +3223,7 @@ givenDataUnauthenticatedFromApplication :
     -> Application.Model
 givenDataUnauthenticatedFromApplication data =
     Application.handleCallback
-        (Callback.APIDataFetched <| Ok ( 0, data Nothing ))
+        (Callback.APIDataFetched <| Ok ( Time.millisToPosix 0, data Nothing ))
         >> Tuple.first
 
 
@@ -3235,7 +3233,7 @@ givenDataUnauthenticated :
     -> ( Models.Model, List Effects.Effect )
 givenDataUnauthenticated data =
     Dashboard.handleCallback
-        (Callback.APIDataFetched <| Ok ( 0, data Nothing ))
+        (Callback.APIDataFetched <| Ok ( Time.millisToPosix 0, data Nothing ))
 
 
 givenPipelineWithJob : Maybe Concourse.User -> Concourse.APIData
