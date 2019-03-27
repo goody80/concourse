@@ -9,6 +9,8 @@ module Application.Application exposing
     , view
     )
 
+import Browser
+import Browser.Navigation as Navigation
 import Concourse
 import Html exposing (Html)
 import Http
@@ -16,9 +18,9 @@ import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Message.TopLevelMessage as Msgs exposing (TopLevelMessage(..))
-import Navigation
 import Routes
 import SubPage.SubPage as SubPage
+import Url
 import UserState exposing (UserState(..))
 
 
@@ -40,11 +42,12 @@ type alias Model =
     , pipelineRunningKeyframes : String
     , route : Routes.Route
     , userState : UserState
+    , key : Navigation.Key
     }
 
 
-init : Flags -> Navigation.Location -> ( Model, List Effect )
-init flags location =
+init : Flags -> Navigation.Key -> Url.Url -> ( Model, List Effect )
+init flags key location =
     let
         route =
             Routes.parsePath location
@@ -66,6 +69,7 @@ init flags location =
             , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
             , route = route
             , userState = UserStateUnknown
+            , key = key
             }
 
         handleTokenEffect =
@@ -82,7 +86,7 @@ init flags location =
     ( model, [ FetchUser ] ++ handleTokenEffect ++ subEffects )
 
 
-locationMsg : Navigation.Location -> TopLevelMessage
+locationMsg : Url.Url -> TopLevelMessage
 locationMsg =
     Routes.parsePath >> RouteChanged >> DeliveryReceived
 
@@ -229,9 +233,11 @@ urlUpdate route model =
     )
 
 
-view : Model -> Html TopLevelMessage
+view : Model -> Browser.Document TopLevelMessage
 view model =
-    Html.map Update (SubPage.view model.userState model.subModel)
+    { title = ""
+    , body = [ Html.map Update (SubPage.view model.userState model.subModel) ]
+    }
 
 
 subscriptions : Model -> List Subscription

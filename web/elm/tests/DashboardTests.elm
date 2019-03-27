@@ -17,7 +17,6 @@ import Concourse
 import Concourse.Cli as Cli
 import Dashboard.Dashboard as Dashboard
 import Dashboard.Models as Models
-import Date exposing (Date)
 import Dict
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
@@ -44,7 +43,7 @@ import Test.Html.Selector
         , tag
         , text
         )
-import Time exposing (Time)
+import Time
 import UserState
 
 
@@ -3063,7 +3062,7 @@ all =
 
 handleCallback : Callback.Callback -> Models.Model -> ( Models.Model, List Effects.Effect )
 handleCallback callback =
-    flip (,) [] >> Dashboard.handleCallback callback
+    Tuple.mapSecond (always []) >> Dashboard.handleCallback callback
 
 
 afterSeconds : Int -> Application.Model -> Application.Model
@@ -3123,14 +3122,14 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mou
                 setup
                     |> query
                     |> Query.has unhoveredSelector.selector
-        , test ("mousing over " ++ name ++ " triggers " ++ toString mouseEnterMsg ++ " msg") <|
+        , test ("mousing over " ++ name ++ " triggers " ++ Debug.toString mouseEnterMsg ++ " msg") <|
             \_ ->
                 setup
                     |> query
                     |> Event.simulate Event.mouseEnter
                     |> Event.expect mouseEnterMsg
         , test
-            (toString mouseEnterMsg
+            (Debug.toString mouseEnterMsg
                 ++ " msg causes "
                 ++ name
                 ++ " to become "
@@ -3142,7 +3141,7 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mou
                     |> updateFunc mouseEnterMsg
                     |> query
                     |> Query.has hoveredSelector.selector
-        , test ("mousing off " ++ name ++ " triggers " ++ toString mouseLeaveMsg ++ " msg") <|
+        , test ("mousing off " ++ name ++ " triggers " ++ Debug.toString mouseLeaveMsg ++ " msg") <|
             \_ ->
                 setup
                     |> updateFunc mouseEnterMsg
@@ -3150,7 +3149,7 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mou
                     |> Event.simulate Event.mouseLeave
                     |> Event.expect mouseLeaveMsg
         , test
-            (toString mouseLeaveMsg
+            (Debug.toString mouseLeaveMsg
                 ++ " msg causes "
                 ++ name
                 ++ " to become "
@@ -3375,8 +3374,8 @@ apiData pipelines user =
 
 
 running : Concourse.Job -> Concourse.Job
-running job =
-    { job
+running j =
+    { j
         | nextBuild =
             Just
                 { id = 1
@@ -3399,15 +3398,15 @@ running job =
 
 otherJob : Concourse.BuildStatus -> Concourse.Job
 otherJob =
-    jobWithNameTransitionedAt "other-job" <| Just 0
+    jobWithNameTransitionedAt "other-job" <| Just <| Time.millisToPosix 0
 
 
 job : Concourse.BuildStatus -> Concourse.Job
 job =
-    jobWithNameTransitionedAt "job" <| Just 0
+    jobWithNameTransitionedAt "job" <| Just <| Time.millisToPosix 0
 
 
-jobWithNameTransitionedAt : String -> Maybe Time -> Concourse.BuildStatus -> Concourse.Job
+jobWithNameTransitionedAt : String -> Maybe Time.Posix -> Concourse.BuildStatus -> Concourse.Job
 jobWithNameTransitionedAt jobName transitionedAt status =
     { pipeline =
         { teamName = "team"
@@ -3449,7 +3448,7 @@ jobWithNameTransitionedAt jobName transitionedAt status =
                     , status = status
                     , duration =
                         { startedAt = Nothing
-                        , finishedAt = Just <| Date.fromTime t
+                        , finishedAt = Just <| t
                         }
                     , reapTime = Nothing
                     }
@@ -3502,7 +3501,7 @@ circularJobs =
                 , status = Concourse.BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
-                    , finishedAt = Just <| Date.fromTime 0
+                    , finishedAt = Just <| Time.millisToPosix 0
                     }
                 , reapTime = Nothing
                 }
@@ -3556,7 +3555,7 @@ circularJobs =
                 , status = Concourse.BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
-                    , finishedAt = Just <| Date.fromTime 0
+                    , finishedAt = Just <| Time.millisToPosix 0
                     }
                 , reapTime = Nothing
                 }
@@ -3600,21 +3599,18 @@ teamHeaderHasPill teamName pillText =
 isColorWithStripes : { thick : String, thin : String } -> Query.Single msg -> Expectation
 isColorWithStripes { thick, thin } =
     Query.has
-        [ style
-            [ ( "background-image"
-              , "repeating-linear-gradient(-115deg,"
-                    ++ thick
-                    ++ " 0,"
-                    ++ thick
-                    ++ " 10px,"
-                    ++ thin
-                    ++ " 0,"
-                    ++ thin
-                    ++ " 16px)"
-              )
-            , ( "background-size", "106px 114px" )
-            , ( "animation"
-              , pipelineRunningKeyframes ++ " 3s linear infinite"
-              )
-            ]
+        [ style "background-image" <|
+            "repeating-linear-gradient(-115deg,"
+                ++ thick
+                ++ " 0,"
+                ++ thick
+                ++ " 10px,"
+                ++ thin
+                ++ " 0,"
+                ++ thin
+                ++ " 16px)"
+        , style "background-size" "106px 114px"
+        , style "animation" <|
+            pipelineRunningKeyframes
+                ++ " 3s linear infinite"
         ]
