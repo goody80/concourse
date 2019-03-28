@@ -41,6 +41,7 @@ type Route
     | Job { id : Concourse.JobIdentifier, page : Maybe Pagination.Page }
     | OneOffBuild { id : Concourse.BuildId, highlight : Highlight }
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
+    | PipelineRaw { id : Concourse.PipelineRawIdentifier, groups : List String }
     | Dashboard SearchType
     | FlySuccess { flyPort : Maybe Int }
 
@@ -157,10 +158,16 @@ job =
         )
 
 
+
 pipeline : Parser ((List String -> Route) -> a) a
 pipeline =
     map (\t p g -> Pipeline { id = { teamName = t, pipelineName = p }, groups = g })
         (s "teams" </> string </> s "pipelines" </> string)
+
+pipelineraw : Parser ((List String -> Route) -> a) a
+pipelineraw =
+    map (\t p g -> Pipeline { id = { teamName = t, pipelineName = p }, groups = g })
+        (s "teams" </> string </> s "pipelinesRaw" </> string)
 
 
 dashboard : Parser (Route -> a) a
@@ -203,9 +210,14 @@ jobRoute j =
     Job { id = { teamName = j.teamName, pipelineName = j.pipelineName, jobName = j.name }, page = Nothing }
 
 
+
 pipelineRoute : { a | name : String, teamName : String } -> Route
 pipelineRoute p =
     Pipeline { id = { teamName = p.teamName, pipelineName = p.name }, groups = [] }
+
+pipelineRawRoute : { a | name : String, teamName : String } -> Route
+pipelineRawRoute p =
+    PipelineRaw { id = { teamName = p.teamName, pipelineName = p.name }, groups = [] }
 
 
 dashboardRoute : Bool -> Route
@@ -350,10 +362,24 @@ toString route =
                 ++ Basics.toString id
                 ++ showHighlight highlight
 
+
         Pipeline { id, groups } ->
             "/teams/"
                 ++ id.teamName
                 ++ "/pipelines/"
+                ++ id.pipelineName
+                ++ (case groups of
+                        [] ->
+                            ""
+
+                        gs ->
+                            "?groups=" ++ String.join "&groups=" gs
+                   )
+
+        PipelineRaw { id, groups } ->
+            "/teams/"
+                ++ id.teamName
+                ++ "/pipelinesRaw/"
                 ++ id.pipelineName
                 ++ (case groups of
                         [] ->
@@ -448,6 +474,34 @@ extractPid route =
 
         FlySuccess _ ->
             Nothing
+
+extractPid : Route -> Maybe Concourse.PipelineRawIdentifier
+extractPid route =
+    case route of
+        Build { id } ->
+            Just { teamName = id.teamName, pipelineName = id.pipelineName }
+
+        Job { id } ->
+            Just { teamName = id.teamName, pipelineName = id.pipelineName }
+
+        Resource { id } ->
+            Just { teamName = id.teamName, pipelineName = id.pipelineName }
+
+        Pipeline { id } ->
+            Just id
+
+        OneOffBuild _ ->
+            Nothing
+
+        Dashboard _ ->
+            Nothing
+
+        FlySuccess _ ->
+            Nothing
+
+
+
+
 
 
 extractQuery : SearchType -> String

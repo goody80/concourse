@@ -248,6 +248,9 @@ routeMatchesModel route model =
         ( Routes.Pipeline _, SubPage.PipelineModel _ ) ->
             True
 
+        ( Routes.PipelineRaw _, SubPage.PipelineRawModel _ ) ->
+            True
+
         ( Routes.Resource _, SubPage.ResourceModel _ ) ->
             True
 
